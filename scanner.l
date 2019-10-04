@@ -28,7 +28,7 @@
     yylval.str = strdup(yytext);
     return(ID);
 }
-\".*\" {
+\"[^\""]*\" {
     printf("String: (%s)\n", yytext);
     yylval.str = strdup(yytext);
     return(STRING);
