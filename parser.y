@@ -32,7 +32,7 @@ int main(){
 %union { int ival; char *str;}
 
 %start prog
-%type <str> functions function statements statement funcall arguments argument expression
+%type <str> functions function statements statement funcall arguments argument
 
 %token <ival> LPAREN RPAREN LBRACE RBRACE SEMICOLON NUMBER COMMA PLUS
 %token <str> ID STRING
@@ -55,14 +55,13 @@ functions: /*empty*/
     }
     ;
 function: ID LPAREN RPAREN LBRACE statements RBRACE{
-        char *func = (char*) malloc(128);
+        char *func = (char*) malloc(500);
         for(labelNum; labelNum < stringCount; labelNum++){
-            sprintf(func, ".LC%d:\n", labelNum);
-            sprintf(func, "\t.string %s\n", strings[labelNum]);
+            sprintf(func, "%s.LC%d:\n\t.string %s\n",func ,labelNum, strings[labelNum]);
         }
-        sprintf(func, "\t.text\n\t.globl\t%s\n\t.type\t%s, @function\n\t%s:\n", $1, $1, $1);
-        sprintf(func, ".LFB%d:\n\t.cfi_startproc\n\tpushq\t%%rbp\n\t.cfi_def_cfa_offset\t16\n\t.cfi_def_offset\t6, -16\n\tmovq\t%%rsp, %%rbp\n\t.cfi_def_cfa_register\t6%s\tpopq\t%%rbp\n\t.cfi_def_cfa\t7, 8\n\tret\n\t.cfi_endproc\n", functionNum, $5);
-        sprintf(func, ".LFE%d:\n\t.size\t%s, .-%s\n", functionNum, $1, $1);
+        sprintf(func, "%s\t.text\n\t.globl\t%s\n\t.type\t%s, @function\n%s:\n", func, $1, $1, $1);
+        sprintf(func, "%s.LFB%d:\n\t.cfi_startproc\n\tpushq\t%%rbp\n\t.cfi_def_cfa_offset\t16\n\t.cfi_def_offset\t6, -16\n\tmovq\t%%rsp, %%rbp\n\t.cfi_def_cfa_register\t6%s\tpopq\t%%rbp\n\t.cfi_def_cfa\t7, 8\n\tret\n\t.cfi_endproc\n", func, functionNum, $5);
+        // sprintf(func, "%s.LFE%d:\n\t.size\t%s, .-%s\n", func, functionNum, $1, $1);
         $$ = func;
     }
     ;
@@ -72,6 +71,7 @@ statements: /*empty*/
     statement statements{
         char *stmt = (char*) malloc(128);
         sprintf(stmt, "%s%s", $1, $2);
+        printf("this is the statements: (%s)\n", stmt);
         $$ = stmt;
     }
     ;
@@ -97,8 +97,8 @@ arguments: /*empty*/
     |
     argument COMMA arguments{
         char *args = (char*) malloc(128);
-        sprintf(args, "%s%s\n", $1, $3);
-        sprintf(args, "\n\tmovl\t$0, %%eax\n");
+        sprintf(args, "%s%s", $1, $3);
+        sprintf(args, "\tmovl\t$0, %%eax\n");
         $$ = args;
     }
     ;
@@ -106,31 +106,31 @@ argument: STRING {
     printf("Argument (%s)", $1);
     int sid = addString($1);
     char *code = (char*) malloc(128);
-    sprintf(code, "\n\tleaq\t$.LC%d, %s\n", sid, argRegStr[argNum]);
+    sprintf(code, "\tleaq\t$.LC%d, %s\n", sid, argRegStr[argNum]);
     argNum++;
     $$ = code;
     }
-    |
-    expression {
-        printf("Argument (%s)\n", $1);
-        char *code = (char*) malloc(128);
-        sprintf(code, "%s\n\tmovl\t%s, %%edx\n", $1, argRegStr[argNum]);
-        $$ = code;
-    }
-    ;
-expression: NUMBER {
-    char *num = (char*) malloc(128);
-    sprintf(num, "\n\tmovl\t%d, %s\n", $1, argRegStr[argNum]);
-    argNum++;
-    $$ = num;
-    }
-    |
-    expression PLUS expression {
-        char *add = (char*) malloc(128);
-        sprintf(add, "\n\tadd\t%s, %s\n", argRegStr[argNum], argRegStr[argNum - 1]);
-        $$ = add;
-    }
-    ;
+//     |
+//     expression {
+//         printf("Argument (%s)\n", $1);
+//         char *code = (char*) malloc(128);
+//         sprintf(code, "%s\n\tmovl\t%s, %%edx\n", $1, argRegStr[argNum]);
+//         $$ = code;
+//     }
+//     ;
+// expression: expression PLUS expression {
+//         char *add = (char*) malloc(128);
+//         sprintf(add, "\n\tmovl\t0, %%eax");
+//         $$ = $1;
+//     }
+//     |
+//     NUMBER {
+//         char *num = (char*) malloc(128);
+//         sprintf(num, "%d", $1);
+//         argNum++;
+//         $$ = num;
+//     }
+//     ;
 %%
 
 extern FILE *yyin;  
