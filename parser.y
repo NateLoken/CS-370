@@ -32,7 +32,7 @@ int main(){
 %union { int ival; char *str;}
 
 %start prog
-%type <str> functions function statements statement funcall arguments argument
+%type <str> functions function statements statement funcall arguments argument expression
 
 %token <ival> LPAREN RPAREN LBRACE RBRACE SEMICOLON NUMBER COMMA PLUS
 %token <str> ID STRING
@@ -52,7 +52,6 @@ functions: /*empty*/
         char *funcs = (char*) malloc(8192);
         printf("function: (%s)\n", $1);
         sprintf(funcs, "%s%s", $1, $2);
-        printf("These are the functions: (%s)\n", funcs);
         $$ = funcs;
     }
     ;
@@ -70,7 +69,6 @@ function: ID LPAREN RPAREN LBRACE statements RBRACE{
         sprintf(functionData, "\t.text\n\t.globl\t%s\n\t.type\t%s, @function\n%s:\n.LFB%d:\n\t.cfi_startproc\n\tpushq\t%%rbp\n\t.cfi_def_cfa_offset\t16\n\t.cfi_offset\t6, -16\n\tmovq\t%%rsp, %%rbp\n\t.cfi_def_cfa_register\t6\n%s\tpopq\t%%rbp\n\t.cfi_def_cfa\t7, 8\n\tret\n\t.cfi_endproc\n.LFE%d:\n\t.size\t%s, .-%s\n\n", $1, $1, $1, functionNum, $5, functionNum, $1, $1);
         
         strcat(func, functionData);
-        printf("This is the complete function: (%s)", func);
         functionNum++;
         $$ = func;
     }
@@ -81,7 +79,6 @@ statements: /*empty*/
     statement statements{
         char *stmt = (char*) malloc(512);
         sprintf(stmt, "%s%s", $1, $2);
-        printf("this is the statements: (%s)\n", stmt);
         $$ = stmt;
     }
     ;
@@ -93,9 +90,8 @@ statement: funcall{
 funcall: ID LPAREN arguments RPAREN SEMICOLON{
     printf("Function call: (%s)\n", $1);
     char *fcall = (char*) malloc(128);
-    sprintf(fcall, "%s\tcall\t%s\n", $3, $1);
+    sprintf(fcall, "%s\tmovl\t$0, %%eax\n\tcall\t%s\n", $3, $1);
     argNum = 0;
-    printf("This is a function call: (%s)", fcall);
     $$ = fcall;
     }
     ;
@@ -109,7 +105,6 @@ arguments: /*empty*/
     argument COMMA arguments{
         char *args = (char*) malloc(128);
         sprintf(args, "%s%s", $1, $3);
-        sprintf(args, "%s\tmovl\t$0, %%eax\n", args);
         $$ = args;
     }
     ;
@@ -121,27 +116,24 @@ argument: STRING {
     argNum++;
     $$ = code;
     }
-//     |
-//     expression {
-//         printf("Argument (%s)\n", $1);
-//         char *code = (char*) malloc(128);
-//         sprintf(code, "%s\n\tmovl\t%s, %%edx\n", $1, argRegStr[argNum]);
-//         $$ = code;
-//     }
-//     ;
-// expression: expression PLUS expression {
-//         char *add = (char*) malloc(128);
-//         sprintf(add, "\n\tmovl\t0, %%eax");
-//         $$ = $1;
-//     }
-//     |
-//     NUMBER {
-//         char *num = (char*) malloc(128);
-//         sprintf(num, "%d", $1);
-//         argNum++;
-//         $$ = num;
-//     }
-//     ;
+    |
+    expression {
+        printf("Argument (%s)\n", $1);
+        // char *code = (char*) malloc(512);
+        // char *pop = (char*) malloc(128);
+        // sprintf(code, "%s\tmovl\t%s, %%edx\n", $1, argRegStr[argNum - 1]);
+        // sprintf(pop, "\tpopq\t%s\n", argRegStr[argNum - 1]);
+        // strcat(code, pop);
+        $$ = $1;
+    }
+    ;
+expression: NUMBER {
+        char *num = (char*) malloc(128);
+        sprintf(num, "\tmovl\t$%d, %%edx\n", $1);
+        argNum++;
+        $$ = num;
+    }
+    ;
 %%
 
 extern FILE *yyin;  
