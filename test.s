@@ -16,8 +16,10 @@ func:
 	movq	%rsp, %rbp
 	.cfi_def_cfa_register	6
 	mov	$.LC0, %rdi
+	movl	$0, %eax
 	call	puts
 	mov	$.LC1, %rdi
+	movl	$0, %eax
 	call	puts
 	popq	%rbp
 	.cfi_def_cfa	7, 8
@@ -31,7 +33,7 @@ func:
 .LC3:
 	.string	"second"
 .LC4:
-	.string	"printf call %s \n"
+	.string	"printf call %s %d\n"
 .LC5:
 	.string	"and more"
 .LC6:
@@ -49,13 +51,16 @@ main:
 	.cfi_def_cfa_register	6
 	mov	$.LC2, %rdi
 	mov	$.LC3, %rsi
+	movl	$42, %edx
 	movl	$0, %eax
 	call	func
 	mov	$.LC4, %rdi
 	mov	$.LC5, %rsi
+	movl	$42, %edx
 	movl	$0, %eax
 	call	printf
 	mov	$.LC6, %rdi
+	movl	$0, %eax
 	call	puts
 	popq	%rbp
 	.cfi_def_cfa	7, 8
