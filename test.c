@@ -4,7 +4,7 @@ func(){
 }
 
 main(){
-    func("goodbye", "second");
-    printf("printf call %s \n", "and more");
+    func("goodbye", "second", 42);
+    printf("printf call %s %d\n", "and more", 42);
     puts("hello world");
 }
