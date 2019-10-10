@@ -49,19 +49,29 @@ functions: /*empty*/
     {$$ = "";}
     |
     function functions{
-        char *funcs = (char*) malloc(128);
+        char *funcs = (char*) malloc(8192);
+        printf("function: (%s)\n", $1);
         sprintf(funcs, "%s%s", $1, $2);
+        printf("These are the functions: (%s)\n", funcs);
         $$ = funcs;
     }
     ;
 function: ID LPAREN RPAREN LBRACE statements RBRACE{
-        char *func = (char*) malloc(500);
-        for(labelNum; labelNum < stringCount; labelNum++){
-            sprintf(func, "%s.LC%d:\n\t.string %s\n",func ,labelNum, strings[labelNum]);
+        char *label = (char*) malloc(128);  
+        char *func = (char*) malloc(8192);
+        char *functionData = (char*) malloc(512);
+
+        while(labelNum < stringCount){
+            sprintf(label, ".LC%d:\n\t.string\t%s\n", labelNum, strings[labelNum]);
+            strcat(func, label);
+            labelNum++;
         }
-        sprintf(func, "%s\t.text\n\t.globl\t%s\n\t.type\t%s, @function\n%s:\n", func, $1, $1, $1);
-        sprintf(func, "%s.LFB%d:\n\t.cfi_startproc\n\tpushq\t%%rbp\n\t.cfi_def_cfa_offset\t16\n\t.cfi_def_offset\t6, -16\n\tmovq\t%%rsp, %%rbp\n\t.cfi_def_cfa_register\t6%s\tpopq\t%%rbp\n\t.cfi_def_cfa\t7, 8\n\tret\n\t.cfi_endproc\n", func, functionNum, $5);
-        // sprintf(func, "%s.LFE%d:\n\t.size\t%s, .-%s\n", func, functionNum, $1, $1);
+
+        sprintf(functionData, "\t.text\n\t.globl\t%s\n\t.type\t%s, @function\n%s:\n.LFB%d:\n\t.cfi_startproc\n\tpushq\t%%rbp\n\t.cfi_def_cfa_offset\t16\n\t.cfi_offset\t6, -16\n\tmovq\t%%rsp, %%rbp\n\t.cfi_def_cfa_register\t6\n%s\tpopq\t%%rbp\n\t.cfi_def_cfa\t7, 8\n\tret\n\t.cfi_endproc\n.LFE%d:\n\t.size\t%s, .-%s\n\n", $1, $1, $1, functionNum, $5, functionNum, $1, $1);
+        
+        strcat(func, functionData);
+        printf("This is the complete function: (%s)", func);
+        functionNum++;
         $$ = func;
     }
     ;
@@ -69,7 +79,7 @@ statements: /*empty*/
     {$$ = "";}
     |
     statement statements{
-        char *stmt = (char*) malloc(128);
+        char *stmt = (char*) malloc(512);
         sprintf(stmt, "%s%s", $1, $2);
         printf("this is the statements: (%s)\n", stmt);
         $$ = stmt;
@@ -85,6 +95,7 @@ funcall: ID LPAREN arguments RPAREN SEMICOLON{
     char *fcall = (char*) malloc(128);
     sprintf(fcall, "%s\tcall\t%s\n", $3, $1);
     argNum = 0;
+    printf("This is a function call: (%s)", fcall);
     $$ = fcall;
     }
     ;
@@ -98,15 +109,15 @@ arguments: /*empty*/
     argument COMMA arguments{
         char *args = (char*) malloc(128);
         sprintf(args, "%s%s", $1, $3);
-        sprintf(args, "\tmovl\t$0, %%eax\n");
+        sprintf(args, "%s\tmovl\t$0, %%eax\n", args);
         $$ = args;
     }
     ;
 argument: STRING {
     printf("Argument (%s)", $1);
     int sid = addString($1);
-    char *code = (char*) malloc(128);
-    sprintf(code, "\tleaq\t$.LC%d, %s\n", sid, argRegStr[argNum]);
+    char *code = (char*) malloc(256);
+    sprintf(code, "\tmov\t$.LC%d, %s\n", sid, argRegStr[argNum]);
     argNum++;
     $$ = code;
     }
