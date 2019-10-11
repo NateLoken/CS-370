@@ -127,13 +127,12 @@ expression: NUMBER {
         $$ = num;
     }
     |
-    expression PLUS expression {
+    expression PLUS NUMBER {
         char *sum = (char*) malloc(1024);
         char *add = (char*) malloc(128);
 
-        sprintf(add, "\tadd\t%s, %%rdx\n", argRegStr[argNum - 1]);
+        sprintf(add, "\tadd\t$%d, %s\n", $3, argRegStr[argNum - 1]);
         strcpy(sum, $1);
-        strcat(sum, $3);
         strcat(sum, add);
         printf("expression: (%s)\n", sum);
         $$ = sum;
