@@ -66,7 +66,9 @@
 \+ {
     printf("Plus\n");
     yylval.ival = yytext[0];
+    return(PLUS);
 }
+
 [0-9]+ {
     printf("Number (%s)\n", yytext);
     yylval.ival = strtol(yytext, 0, 10);
