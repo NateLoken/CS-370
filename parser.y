@@ -1,17 +1,13 @@
 /*GRAMMAR
-prog -> function
-function -> ID LPAREN RPAREN LBRACE statements RBRACE
-statements -> statementstatements | empty
-statement -> funcall
-funcall -> ID LPAREN STRING RPAREN SEMICOLON
-
-
-The lexems? for 
-int main(){
-    puts("Hello World!");
-}
-<ID, int main> <LPAREN, (> <RPAREN, )> <LBRACE, {> <statements, puts("Hello World!");> <RBRACE, }>
-<statement, puts("Hello World!");> <funcall, [<ID, puts> <LPAREN, (> <STRING, Hello World!> <RPAREN, )> <SEMICOLON, ;>]>
+Prog -> Functions
+Functions -> empty | Function Functions
+Function -> ID '(' ')' '{' Statements '}'
+Statements -> Statement Statements | empty
+Statement -> FunCall
+FunCall -> ID '(' Arguments ')' ';'
+Arguments -> empty | Argument | Argument COMMA Arguments
+Argument -> STRING | Expression
+Expression -> NUMBER | Expression PLUS Expression
 */
 
 %{
@@ -36,6 +32,8 @@ int main(){
 
 %token <ival> LPAREN RPAREN LBRACE RBRACE SEMICOLON NUMBER COMMA PLUS
 %token <str> ID STRING
+
+%left PLUS
 
 %%
 prog: functions{
@@ -89,7 +87,7 @@ statement: funcall{
     ;
 funcall: ID LPAREN arguments RPAREN SEMICOLON{
     printf("Function call: (%s)\n", $1);
-    char *fcall = (char*) malloc(128);
+    char *fcall = (char*) malloc(512);
     sprintf(fcall, "%s\tmovl\t$0, %%eax\n\tcall\t%s\n", $3, $1);
     argNum = 0;
     $$ = fcall;
@@ -119,19 +117,26 @@ argument: STRING {
     |
     expression {
         printf("Argument (%s)\n", $1);
-        // char *code = (char*) malloc(512);
-        // char *pop = (char*) malloc(128);
-        // sprintf(code, "%s\tmovl\t%s, %%edx\n", $1, argRegStr[argNum - 1]);
-        // sprintf(pop, "\tpopq\t%s\n", argRegStr[argNum - 1]);
-        // strcat(code, pop);
         $$ = $1;
     }
     ;
 expression: NUMBER {
         char *num = (char*) malloc(128);
-        sprintf(num, "\tmovl\t$%d, %%edx\n", $1);
+        sprintf(num, "\tmov\t$%d, %s\n", $1, argRegStr[argNum]);
         argNum++;
         $$ = num;
+    }
+    |
+    expression PLUS expression {
+        char *sum = (char*) malloc(1024);
+        char *add = (char*) malloc(128);
+
+        sprintf(add, "\tadd\t%s, %%rdx\n", argRegStr[argNum - 1]);
+        strcpy(sum, $1);
+        strcat(sum, $3);
+        strcat(sum, add);
+        printf("expression: (%s)\n", sum);
+        $$ = sum;
     }
     ;
 %%
