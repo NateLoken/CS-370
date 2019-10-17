@@ -14,6 +14,8 @@ Expression -> NUMBER | Expression PLUS Expression
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
+    #include "symtable.h"
+    
     int yyerror(char *s);
     int yylex(void);
     int addString(char *s);
@@ -28,15 +30,15 @@ Expression -> NUMBER | Expression PLUS Expression
 %union { int ival; char *str;}
 
 %start prog
-%type <str> functions function statements statement funcall arguments argument expression
+%type <str> functions function statements statement funcall arguments argument expression declarations parameters assignment varDecl
 
-%token <ival> LPAREN RPAREN LBRACE RBRACE SEMICOLON NUMBER COMMA PLUS
+%token <ival> LPAREN RPAREN LBRACE RBRACE SEMICOLON NUMBER COMMA PLUS EQUALS KWINT KWCHAR
 %token <str> ID STRING
 
 %left PLUS
 
 %%
-prog: functions{
+prog: declarations functions{
         FILE *fp;
         fp = fopen("test.s", "w");
         fprintf(fp, "\t.text\n\t.section\t.rodata\n");
@@ -53,7 +55,7 @@ functions: /*empty*/
         $$ = funcs;
     }
     ;
-function: ID LPAREN RPAREN LBRACE statements RBRACE{
+function: ID LPAREN parameters RPAREN LBRACE statements RBRACE{
         char *label = (char*) malloc(128);  
         char *func = (char*) malloc(8192);
         char *functionData = (char*) malloc(512);
@@ -75,7 +77,7 @@ statements: /*empty*/
     {$$ = "";}
     |
     statement statements{
-        char *stmt = (char*) malloc(512);
+        char *stmt = (char*) malloc(1024);
         sprintf(stmt, "%s%s", $1, $2);
         $$ = stmt;
     }
@@ -84,13 +86,21 @@ statement: funcall{
     printf("Statement: (%s)\n", $1);
     $$ = $1;
     }
+    |
+    assignment{
+
+    }
     ;
 funcall: ID LPAREN arguments RPAREN SEMICOLON{
     printf("Function call: (%s)\n", $1);
-    char *fcall = (char*) malloc(512);
+    char *fcall = (char*) malloc(1024);
     sprintf(fcall, "%s\tmovl\t$0, %%eax\n\tcall\t%s\n", $3, $1);
     argNum = 0;
     $$ = fcall;
+    }
+    ;
+assignment: ID EQUALS expression{
+
     }
     ;
 arguments: /*empty*/
@@ -101,7 +111,7 @@ arguments: /*empty*/
     }
     |
     argument COMMA arguments{
-        char *args = (char*) malloc(128);
+        char *args = (char*) malloc(1024);
         sprintf(args, "%s%s", $1, $3);
         $$ = args;
     }
@@ -117,25 +127,59 @@ argument: STRING {
     |
     expression {
         printf("Argument (%s)\n", $1);
-        $$ = $1;
+        char *expr = (char*) malloc(1024);
+        sprintf(expr, "%s\tmov\t%%rax, %s\n", $1, argRegStr[argNum]);
+        argNum++;
+        $$ = expr;
     }
     ;
 expression: NUMBER {
         char *num = (char*) malloc(128);
-        sprintf(num, "\tmov\t$%d, %s\n", $1, argRegStr[argNum]);
-        argNum++;
+        sprintf(num, "\tmovl\t$%d, %%eax\n", $1);
         $$ = num;
     }
     |
-    expression PLUS NUMBER {
+    ID{
+
+    }
+    |
+    expression PLUS expression {
         char *sum = (char*) malloc(1024);
         char *add = (char*) malloc(128);
 
-        sprintf(add, "\tadd\t$%d, %s\n", $3, argRegStr[argNum - 1]);
+        sprintf(add, "\tpop\t%s\n\tadd\t%s, %%rax\n", argRegStr[argNum], argRegStr[argNum]);
         strcpy(sum, $1);
+        strcat(sum, "\tpush\t%rax\n");
+        strcat(sum, $3);
         strcat(sum, add);
         printf("expression: (%s)\n", sum);
         $$ = sum;
+    }
+    ;
+declarations: /*empty*/
+    {$$ = "";}
+    |
+    varDecl SEMICOLON declarations{
+
+    }
+    ;
+varDecl: KWINT ID{
+
+    }
+    |
+    KWCHAR ID{
+
+    }
+    ;
+parameters: /*empty*/
+    {$$ = "";}
+    |
+    varDecl{
+
+    }
+    |
+    varDecl COMMA parameters{
+
     }
     ;
 %%
