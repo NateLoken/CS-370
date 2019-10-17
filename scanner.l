@@ -8,21 +8,34 @@
     typedef union {int ival; char* str; } yystype;
     #define YYSTYPE yystype
     yystype yylval;
-    #define ID 1
-    #define STRING 2
-    #define LPAREN 3
-    #define RPAREN 4
-    #define LBRACE 5
-    #define RBRACE 6
-    #define SEMICOLON 7
-    #define COMMA 8
-    #define PLUS 9
-    #define NUMBER 10
+    #define KWINT 1
+    #define KWCHAR 2
+    #define ID 3
+    #define STRING 4
+    #define LPAREN 5
+    #define RPAREN 6
+    #define LBRACE 7
+    #define RBRACE 8
+    #define SEMICOLON 9
+    #define COMMA 10
+    #define PLUS 11
+    #define NUMBER 12
+    #define EQUALS 13
     #endif
 %}
 
 %%
 [ \t\n\r]* {}
+int {
+    printf("keyword: int\n");
+    yylval.str = strdup(yytext);
+    return(KWINT);
+}
+char\* {
+    printf("keyword: char*\n");
+    yylval.str = strdup(yytext);
+    return(KWCHAR);
+}
 [A-Z a-z]+ {
     printf("ID: (%s)\n", yytext);
     yylval.str = strdup(yytext);
@@ -68,7 +81,11 @@
     yylval.ival = yytext[0];
     return(PLUS);
 }
-
+\= {
+    printf("Equals\n");
+    yylval.ival = yytext[0];
+    return(EQUALS);
+}
 [0-9]+ {
     printf("Number (%s)\n", yytext);
     yylval.ival = strtol(yytext, 0, 10);
