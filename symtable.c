@@ -44,10 +44,12 @@ int addSymbol(Symbol** table, char* name, int scopeLevel, DataType type){
         int hashval = hash(name);
         Symbol* node;
         node = (Symbol*) malloc(sizeof(Symbol*));
-        node -> name = name;
+        node -> name = (char*) malloc(sizeof(char)*(strlen(name + 1)));
+        strcpy(node -> name, name);
         node -> scopeLevel = scopeLevel;
         node -> type = type;
-        table[hashval] -> next = node;
+        node -> next = table[hashval];
+        table[hashval] = node;
         return 0;
     }
     return - 1;
@@ -61,14 +63,15 @@ int addSymbol(Symbol** table, char* name, int scopeLevel, DataType type){
 Symbol* findSymbol(Symbol** table, char* name){
    // this function should also have a pretty simple implementation
    if(table != NULL){
-       Symbol* cur = table;
        int hashval = hash(name);
+       Symbol* cur = table[hashval];
        while(cur != NULL){
            if(hash(cur -> name) == hashval)
             return cur;
-        cur -> next;
+        cur = cur -> next;
        }
    }
+   return table[hash(name)];
 }
 // Iterator over entire symbol table
 // - caller must declare iter as actual structure, not a pointer (pass with &)
