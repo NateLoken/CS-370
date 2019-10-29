@@ -36,7 +36,7 @@ char\* {
     yylval.str = strdup(yytext);
     return(KWCHAR);
 }
-[A-Z a-z]+ {
+[A-Za-z]+ {
     printf("ID: (%s)\n", yytext);
     yylval.str = strdup(yytext);
     return(ID);
@@ -76,15 +76,15 @@ char\* {
     yylval.ival = yytext[0];
     return(COMMA);
 }
-\+ {
-    printf("Plus\n");
-    yylval.ival = yytext[0];
-    return(PLUS);
-}
 \= {
     printf("Equals\n");
     yylval.ival = yytext[0];
     return(EQUALS);
+}
+\+ {
+    printf("Plus\n");
+    yylval.ival = yytext[0];
+    return(PLUS);
 }
 [0-9]+ {
     printf("Number (%s)\n", yytext);
