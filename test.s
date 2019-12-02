@@ -1,72 +1,65 @@
-	.text
-	.section	.rodata
+        .data
+x:      .word
+y:      .word
+        .section        .rodata
 .LC0:
-	.string	"hello world"
-	.text
-	.globl	func
-	.type	func, @function
-func:
-.LFB0:
-	.cfi_startproc
-	pushq	%rbp
-	.cfi_def_cfa_offset	16
-	.cfi_offset	6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register	6
-	mov	$.LC0, %rdi
-	movl	$0, %eax
-	call	puts
-	popq	%rbp
-	.cfi_def_cfa	7, 8
-	ret
-	.cfi_endproc
-.LFE0:
-	.size	func, .-func
-
+        .string "Hello World\n"
 .LC1:
-	.string	"goodbye"
+        .string "x = %d\n"
 .LC2:
-	.string	"second"
+        .string "adios"
 .LC3:
-	.string	"printf call %s %d\n"
+        .string "extra"
 .LC4:
-	.string	"and more"
+        .string "goodbye %s %d\n"
 .LC5:
-	.string	"hello world"
-	.text
-	.globl	main
-	.type	main, @function
-main:
-.LFB1:
-	.cfi_startproc
-	pushq	%rbp
-	.cfi_def_cfa_offset	16
-	.cfi_offset	6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register	6
-	mov	$.LC1, %rdi
-	mov	$.LC2, %rsi
-	mov	$42, %rdx
-	movl	$0, %eax
-	call	func
-	mov	$.LC3, %rdi
-	mov	$.LC4, %rsi
-	mov	$42, %rdx
-	mov	$4, %rcx
-	add	%rcx, %rdx
-	mov	$5, %r8
-	add	%r8, %rdx
-	mov	$2, %r9
-	add	%r9, %rdx
-	movl	$0, %eax
-	call	printf
-	mov	$.LC5, %rdi
-	movl	$0, %eax
-	call	puts
-	popq	%rbp
-	.cfi_def_cfa	7, 8
-	ret
-	.cfi_endproc
-.LFE1:
-	.size	main, .-main
+        .string "second"
+.LC6:
+        .string "Second Hello World!\n"
+        .text
+        .globl  func
+        .type   func, @function
+func:
+        pushq   %rbp
+        movq    %rsp, %rbp
+        mov     $.LC0, %rdi
+        call    puts
+        movl    $2, %edx
+        movl    %edx, x
+        movl    %edx, %esi
+        mov     $.LC1, %rdi
+        movl    x, %edx
+        call    printf
+        popq    %rbp
+        ret
 
+        .globl  main
+        .type   main, @function
+main:
+        pushq   %rbp
+        movq    %rsp, %rbp
+        movl    $42, %edx
+        mov     $.LC2, %rdi
+        mov     $.LC3, %rsi
+        call    func
+        mov     $.LC4, %rdi
+        mov     $.LC5, %rsi
+        movl    $42, %edx
+        pushq   %rdx
+        movl    $4, %edx
+        pushq   %rdx
+        movl    x, %edx
+        pushq   %rdx
+        movl    $1, %edx
+        popq    %rcx
+        addl    %ecx, %edx
+        popq    %rcx
+        addl    %ecx, %edx
+        popq    %rcx
+        addl    %ecx, %edx
+        call    printf
+        mov     $.LC6, %rdi
+        call    puts
+        popq    %rbp
+        ret
+		

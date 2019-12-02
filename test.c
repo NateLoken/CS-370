@@ -1,9 +1,16 @@
-func(){
-    puts("hello world");
+int x;
+int y;
+
+func( int a, char* b, char* s )
+{
+   puts("Hello World\n");
+   x = 2;
+   printf("x = %d\n", x);
 }
 
-main(){
-    func("goodbye", "second", 42);
-    printf("printf call %s %d\n", "and more", 42+4+5+2);
-    puts("hello world");
+main( int argc, char* argv )
+{
+   func(42 , "adios", "extra");
+   printf("goodbye %s %d\n", "second", 42+4+x+1 );
+   puts("Second Hello World!\n");
 }
