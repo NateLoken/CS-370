@@ -20,8 +20,8 @@ typedef enum {
 } ASTNodeType;
 
 // max number of node children (3 will accomodate an ifthen node 
-// that has its condition, ifblock, and elseblock as children
-// each node type has different kinds or children, or none
+// that has its condition, ifblock, and elseblock as children)
+// - each node type has different kinds or children, or none
 #define ASTNUMCHILDREN 3
 
 // AST Node definition; not all node types will use all the fields
@@ -35,7 +35,7 @@ typedef struct astnode_s {
 } ASTNode;
 
 // Function Prototypes -- see C file for detailed descriptions
-
+void DLines();
 ASTNode* newASTNode(ASTNodeType type);
 void printASTree(ASTNode* tree, int level, FILE *out);
 void genCodeFromASTree(ASTNode* tree, int count, FILE *out);
@@ -49,37 +49,25 @@ void genCodeFromASTree(ASTNode* tree, int count, FILE *out);
 //
 // AST_PROGRAM -- root node for whole program
 //                child[0] is global var decls; child[1] is function decls
-// 
-// AST_VARDECL -- variable declaration; strval is variable name; 
-//                ival will be used for local variable offsets, 
-//                array sizes, etc.
-// 
+// AST_VARDECL -- variable declaration; strval is var name; ival will be used
+//                for local var offsets, array sizes, etc.
 // AST_FUNCTION - root node for function definition
 //                child[0] is param decls; child[1] is function body
-// 
 // AST_SBLOCK  -- statement block -- not used for now
-// 
 // AST_FUNCALL -- function call node; strval is function name;
 //                child[0] is arguments
-// 
 // AST_ASSIGNMENT - assignment statement; strval is variable name
 //                child[0] is right hand side expression
-// 
 // AST_WHILE   -- while loop statement
 //                child[0] is condition expression; child[1] is loop body
-// 
 // AST_IFTHEN  -- if-then-else statement; child[0] is condition expression
 //                child[1] is if block, child[2] is else block
-// 
 // AST_EXPRESSION - expression node; ival is the operator id number
-//               child[0] is left subexpr, child[1] is right subexpr
-// 
+//                child[0] is left subexpr, child[1] is right subexpr
 // AST_VARREF  -- variable reference (read); strval is var name
 //                ival and valtype will be used
-// 
 // AST_CONSTANT - constant value; ival is int value for int constant,
 //                strval is string for a string constant; valtype is set
-// 
 // AST_ARGUMENT - function call argument; child[0] is expression of arg;
-//                next is the next argument <- ????????????
+//                next is the next argument
 
