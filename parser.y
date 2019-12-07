@@ -1,240 +1,332 @@
-/*
-Prog -> Declarations Functions
- * Functions -> empty | Function Functions
- * Function -> ID '(' Parameters ')' '{' Statements '}'
- * Statements -> Statement ';' Statements | empty
- * Statement -> FunCall | Assignment
- * FunCall -> ID '(' Arguments ')'
- * Assignment -> ID '=' Expression
- * Arguments -> empty | Argument | Argument ',' Arguments
- * Argument ->  Expression
- * Expression -> STRING | NUMBER | ID | Expression '+' Expression
- * Declarations -> empty | VarDecl ';' Declarations
- * Parameters -> empty | VarDecl | VarDecl ',' Parameters
- * VarDecl -> 'int' ID | 'char*' ID
-*/
 %{
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <string.h>
-    #include "astree.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdbool.h>
+#include "symtable.h"
+#include "astree.h"
 
-    int yyerror(char *s);
-    int yylex(void);
+int yyerror( char* );
+int yywrap();
+int yylex();
+int addString ( char* dollar );
 
-    int strID = 0;
-    Symbol** symbolTable;
-    ASTNode* programAST;
-%}
+int strID = 0;
+int strPos = 0;
+bool doAssembly = true;
+char* strArr[128];
+ASTNode* programAST;
+Symbol** table;
+%} 
 
-%union { int ival; char *str; struct astnode_s * astnode; }
+%union { int ival; char* str; struct astnode_s* astnode;}
 
-%start Prog
-%type <astnode> Prog Declarations Functions Function Parameters Statements Statement Funcall Assignment Expression Arguments Argument VarDecl
+%start Prog 
 
+%type <astnode> Function Functions Statements Statement Funcall Arguments 
+%type <astnode> Argument Expression Declarations Parameters Assignment
+%type <astnode> VarDecl Prog Whileloop Ifthen Ifthenelse Relexpr
+
+%token <ival> KWINT KWSTRING KWWHILE KWIF KWELSE LPAREN RPAREN LBRACE RBRACE SEMICOLON NUMBER COMMA ADDOP EQUALS RELOP
 %token <str> ID STRING
-%token <ival> KWINT KWCHAR LPAREN RPAREN LBRACE RBRACE SEMICOLON NUMBER COMMA PLUS EQUAL
-
 %%
-
 Prog: Declarations Functions
 {
-    programAST = newASTNode(AST_PROGRAM);
-    $$ = programAST;
-    $$ -> child[0] = $1;
-    $$ -> child[1] = $2;
+   $$ = newASTNode(AST_PROGRAM);
+   $$ -> child[0] = $1;
+   $$ -> child[1] = $2;
+   programAST = $$;
 }
 ;
-Functions: /*empty*/
+
+Declarations: VarDecl SEMICOLON Declarations
 {
-    $$ = 0;
+   $1 -> next = $3;
+   $$ = $1;
 }
-| Function Functions
+| /*empty*/
+{ 
+   $$ = 0; 
+} 
+;
+
+VarDecl: KWSTRING ID
 {
-    $1 -> next = $2;
-    $$ = $1;
+   $$ = newASTNode(AST_VARDECL);
+   $$ -> valtype = T_STRING;
+   $$ -> strval = $2;
+}
+
+| KWINT ID
+
+{
+   $$ = newASTNode(AST_VARDECL);
+   $$ -> valtype = T_INT;
+   $$ -> strval = $2;
 }
 ;
+   
+Functions: Function Functions 
+{
+   $1 -> next = $2;
+   $$ = $1;
+}
+
+| /*empty*/
+
+{ $$ = 0; } 
+;
+
 Function: ID LPAREN Parameters RPAREN LBRACE Statements RBRACE
 {
-    $$ = newASTNode(AST_FUNCTION);
-    $$ -> valtype = T_STRING;
-    $$ -> strval = $1;
-    $$ -> child[0] = $3;
-    $$ -> child[1] = $6; 
+   $$ = newASTNode(AST_FUNCTION);
+   $$ -> valtype = T_STRING;
+   $$ -> strval = $1;
+   $$ -> child[0] = $3;
+   $$ -> child[1] = $6;
 }
 ;
-Statements: /*empty*/
+
+Statements: Statement Statements 
 {
-    $$ = 0;
+   $1 -> next = $2;
+   $$ = $1;
 }
-| Statement SEMICOLON Statements
+| /*empty*/
+{ 
+   $$ = 0; 
+} 
+;
+
+Statement: Assignment SEMICOLON 
+{ 
+   $$ = $1;
+} 
+| Funcall SEMICOLON 
+{ 
+   $$ = $1;
+}
+| Whileloop
 {
-    $1 -> next = $3;
-    $$ = $1;
+   $$ = $1;
+}
+| Ifthen
+{
+   $$ = $1;
+}
+| Ifthenelse
+{
+   $$ = $1;
 }
 ;
-Statement: Funcall
+
+Assignment: ID EQUALS Expression
 {
-    $$ = $1;
-}
-| Assignment
-{
-    $$ = $1;
+   $$ = newASTNode(AST_ASSIGNMENT);
+   $$ -> strval = $1;
+   $$ -> child[0] = $3;
 }
 ;
+
 Funcall: ID LPAREN Arguments RPAREN
 {
-    $$ = newASTNode(AST_FUNCALL);
-    $$ -> valtype = T_STRING;
-    $$ -> strval = $1;
-    $$ -> child[0] = $3;
+   $$ = newASTNode(AST_FUNCALL);
+   $$ -> strval = strdup($1);
+   $$ -> child[0] = $3;
 }
 ;
-Assignment: ID EQUAL Expression
+
+Whileloop: KWWHILE LPAREN Relexpr RPAREN LBRACE Statements RBRACE
 {
-    $$ = newASTNode(AST_ASSIGNMENT);
-    $$ -> valtype  = T_STRING;
-    $$ -> strval   = $1;
-    $$ -> child[0] = $3;
+   $$ = newASTNode(AST_WHILE);
+   $$ -> child[0] = $3;
+   $$ -> child[1] = $6;
 }
 ;
-Arguments: /*empty*/
+
+Ifthen: KWIF LPAREN Relexpr RPAREN LBRACE Statements RBRACE
 {
-    $$ = 0;
-}
-| Argument 
-{
-    $$ = $1; 
-}
-| Argument COMMA Arguments
-{
-    $1 -> next = $3;
-    $$ = $1;
+   $$ = newASTNode(AST_IFTHEN);
+   $$ -> child[0] = $3;
+   $$ -> child[1] = $6;
 }
 ;
-Argument: Expression 
+
+Ifthenelse: KWIF LPAREN Relexpr RPAREN LBRACE Statements RBRACE KWELSE LBRACE Statements RBRACE
 {
-    $$ = newASTNode(AST_ARGUMENT);
-    $$ -> child[0] = $1;
+   $$ = newASTNode(AST_IFTHEN);
+   $$ -> child[0] = $3;
+   $$ -> child[1] = $6;
+   $$ -> child[2] = $10;
 }
 ;
-Expression: STRING 
+
+Arguments: Argument COMMA Arguments
 {
-    stringID = addString($1);
-    $$ = newASTNode(AST_CONSTANT);
-    $$ -> valtype = T_STRING;
-    $$ -> ival = stringID;
-    $$ -> strval = $1;
+   $1 -> next = $3;
+   $$ = $1;
 }
-| NUMBER
+| Argument
 {
-    $$ = newASTNode(AST_CONSTANT);
-    $$ -> valtype = T_INT;
-    $$ -> ival = $1;
+   $$ = $1;
+}
+| /*empty*/
+{ 
+   $$ = 0; 
+}
+;
+
+Argument: Expression
+{ 
+   $$ = newASTNode(AST_ARGUMENT);
+   $$ -> child[0] = $1;
+}
+;
+
+Expression: Expression ADDOP Expression
+{
+   $$ = newASTNode(AST_EXPRESSION);
+   $$ -> ival = $2;
+   $$ -> child[0] = $1;
+   $$ -> child[1] = $3;
 }
 | ID
 {
-    $$ = newASTNode(AST_VARREF);
-    $$ -> valtype = T_STRING;
-    $$ -> strval = $1;
+   $$ = newASTNode(AST_VARREF);
+   $$ -> strval = $1;
 }
-| Expression PLUS Expression
-{
-    $$ = newASTNode(AST_EXPRESSION);
-    $$ -> child[0] = $1;
-    $$ -> child[1] = $3;
+| NUMBER 
+{ 
+   $$ = newASTNode(AST_CONSTANT); 
+   $$ -> valtype = T_INT;
+   $$ -> ival = $1;
 }
-;
-Declarations:
+| STRING
 {
-    $$ = NULL;
-}
-| VarDecl SEMICOLON Declarations
-{
-    $1 -> next = $3;
-    $$ = $1;
+   $$ = newASTNode(AST_CONSTANT);
+   $$ -> valtype = T_STRING;
+   $$ -> strval = $1;
+   strID = addString( $1 );
+   $$ -> ival = strID;
 }
 ;
-Parameters: /*empty*/
+
+Relexpr: Expression RELOP Expression
 {
-          $$ = 0;
+   $$ = newASTNode(AST_RELEXPR);
+   $$ -> ival = $2;
+   $$ -> child[0] = $1;
+   $$ -> child[1] = $3;
+}
+;
+
+Parameters: VarDecl COMMA Parameters
+{ 
+   $$ = 0;
 }
 | VarDecl
-{
-    $$ = 0;
+{ 
+   $$ = 0; 
 }
-| VarDecl COMMA Parameters
-{
-    $$ =0;
-}
-;
-VarDecl: KWINT ID
-{
-    addSymbol(symbolTable, $2, 0, $1);
-    $$ = newASTNode(AST_VARDECL);
-    $$ -> valtype = T_INT;
-    $$ -> strval  = $2;
-}
-| KWCHAR ID
-{
-    addSymbol(symbolTable, $2, 0, $1);
-    $$ = newASTNode(AST_VARDECL);
-    $$ -> valtype = T_STRING;
-    $$ -> strval  = $2;
+| /*empty*/
+{ 
+   $$ = 0; 
 }
 ;
-%%
+   
+%%  
 
-extern FILE *yyin;  
+extern FILE *yyin;
 
-int addString(char *s)
-{
-    starterString.stringArray[starterString.arrayIndex] = strdup(s);
-    starterString.arraySize++; 
-    starterString.arrayIndex++;      
-    return (starterString.arrayIndex-1);
+int main(int argc, char **argv) { 
+     FILE* input;
+     FILE* output;
+     char fileName[128];
+     char* handle;
+     int sLength = 0;
+     bool textOn = false;
+
+     switch ( argc ) 
+     {
+         case 1:
+            puts("Input code.\nCtrl + D to finish\n"); 
+            input = stdin;
+            output = stdout;
+            break;
+         case 2:
+            sLength = strlen(argv[1]);
+            strncpy( fileName, argv[1], sLength - 2);
+            
+            fileName[sLength - 2] = '\0';
+
+            handle = strchr(argv[1], '.');
+            
+            if ( handle != NULL) 
+            {
+               if ( strcmp( handle, ".c" ) == 0 ) 
+               { 
+                  input = fopen(argv[1], "r");
+                  strcat ( fileName, ".s" );
+                  output = fopen( fileName, "w");
+               } 
+               else 
+               { 
+                  fprintf(stderr, "Incorrect filetype.\n");
+                  exit(1);
+               }
+            } 
+            else 
+            {
+               fprintf(stderr, "Incorrect filetype.\n");
+               exit(1);
+            }
+            break;
+            
+         case 3:
+            if ( strcmp( argv[1], "-d" ) == 0 ) 
+            {
+               input = fopen(argv[2], "r"); 
+            }
+            else
+            {
+               input = fopen(argv[1], "r");
+            }
+            output = stdout;
+            textOn = true;
+            break;
+            
+         default:
+            fprintf(stderr, "Invalid argument.\n");
+            exit(1);
+      }
+      yyin = input;
+      yyparse();
+      
+      if (textOn) 
+         printASTree(programAST, 0, output);
+      else
+         genCodeFromASTree(programAST, 0, output);
+    
+      fclose(output);
+      
+   return 0;
 }
 
-char* getString( STRINGARRAYTYPE sAt )
-{
-    char *stringAssembly = (char*) malloc (128);
-    char *returnString   = (char*) malloc (150);
-
-    while(sAt.stringArray[strID] != NULL)
-    {
-        sprintf(stringAssembly, "\n.LC%d:\n\t.string %s", strID, sAt.stringArray[strID]);
-        strcat (returnString, stringAssembly);
-        strID++;
-    }
-    return (returnString);
+int addString ( char* dollar ) 
+{   
+   strArr[strPos] = dollar;
+   strPos++;
+   return strPos - 1;
 }
 
-int main(int argc, char **argv)
-{
-    symbolTable = newSymbolTable();
-    if (argc == 2) 
-    {
-        yyin = fopen(argv[1],"r");
-        if(!yyin) 
-        {
-            printf("Error: unable to open file (%s)\n",argv[1]);
-            return(1);
-        }
-    }
-    yyparse();
-
-    genCodeFromASTree(programAST, 0, stdout);
-    return(0);
-}
-
-int yyerror(char *s)
-{
+int yyerror(char *s) {
    fprintf(stderr, "%s\n",s);
    return 0;
 }
 
-int yywrap()
+int yywrap() 
 {
    return(1);
 }
+
+

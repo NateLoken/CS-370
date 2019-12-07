@@ -1,7 +1,11 @@
+
+//
+// Symbol Table Module
+//
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
 
-typedef enum { T_STRING , T_INT } DataType;
+typedef enum { T_STRING, T_INT } DataType;
 
 typedef struct symbol_s {
    int scopeLevel;
@@ -16,6 +20,7 @@ typedef struct {
 } SymbolTableIter;
 
 Symbol** newSymbolTable();
+int getTableSize();
 int addSymbol(Symbol** table, char* name, int scopeLevel, DataType type);
 Symbol* findSymbol(Symbol** table, char* name);
 Symbol* iterSymbolTable(Symbol** table, int scopeLevel, SymbolTableIter* iter);

@@ -1,125 +1,146 @@
 %{
-    #include <stdio.h>
-    #include <stdlib.h>
-    #include <string.h>
-    #ifndef LEXONLY
-    #include "y.tab.h"
-    #else
-    typedef union {int ival; char* str; } yystype;
-    #define YYSTYPE yystype
-    yystype yylval;
 
-    #define KWINT       1
-    #define KWCHAR      2
-    #define ID          3
-    #define NUMBER      4
-    #define STRING      5
-    #define LPAREN      6
-    #define RPAREN      7
-    #define LBRACE      8
-    #define RBRACE      9
-    #define SEMICOLON  10
-    #define COMMA      11
-    #define PLUS       12
-    #define EQUAL      13
-
-    #endif
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#ifndef LEXONLY
+#include "y.tab.h"
+#else
+typedef union { int ival; char* str; } yystype;
+#define YYSTYPE yystype
+yystype yylval;
+#define KWINT	     1
+#define KWSTRING    2
+#define KWWHILE     3
+#define KWIF        4
+#define KWELSE      5
+#define ID          6
+#define STRING      7
+#define LPAREN      8
+#define RPAREN      9
+#define LBRACE      10
+#define RBRACE      11
+#define SEMICOLON   12
+#define NUMBER      13
+#define COMMA       14
+#define ADDOP       15
+#define EQUALS	     16
+#define RELOP       17
+#endif
 %}
 
 %%
-[ \t\n\r]*        {}
 
-int               {
-                     yylval.ival = yytext[0];
-                     return (KWINT);
-                  }
+[ \t\n\r]* {}
 
-char\*            {
-                     yylval.ival = yytext[0];
-                     return(KWCHAR);
-                  }
+int       {
+/*             printf("INT: (%s)\n", yytext); */
+            yylval.str = strdup(yytext);
+            return (KWINT);
+          }
+          
+char\*    {
+/*             printf("CHAR*: (%s)\n", yytext); */
+            yylval.str = strdup(yytext);
+            return (KWSTRING);
+          }
+          
+while    {
+            yylval.str = strdup(yytext);
+            return (KWWHILE);
+         }
 
-[a-zA-Z]+        {
-                     //printf("ID: (%s)\n", yytext);
-                     yylval.str = strdup(yytext);
-                     return(ID);
-                  }
+if       {
+            yylval.str = strdup(yytext);
+            return (KWIF);
+         }
+         
+else     {
+            yylval.str = strdup(yytext);
+            return (KWELSE);
+         }
 
-[0-9]+            {
-                     //printf("Number (%s)\n", yytext);
-                     yylval.ival = strtol(yytext, 0, 10);
-                     return(NUMBER);
-                  }
+[_a-zA-Z][a-zA-Z0-9_]* { 
+/*             printf("ID: (%s)\n", yytext); */
+            yylval.str = strdup(yytext);
+            return(ID);
+          }
+          
+\"[^\"]*\" {
+/*             printf("STRING: (%s)\n", yytext); */
+            yylval.str = strdup(yytext);
+            return(STRING);
+          }
+          
+\(        {
+/*             printf("LPAREN: (%s)\n", yytext); */
+            yylval.ival = yytext[0];
+            return(LPAREN);
+          }
+          
+\)        {
+/*             printf("RPAREN: (%s)\n", yytext); */
+            yylval.ival = yytext[0];
+            return(RPAREN);
+          }
+          
+\;        {
+/*             printf("SEMICOLON: (%s)\n", yytext); */
+            yylval.ival = yytext[0];
+            return(SEMICOLON);
+          }
 
-\"[^\""]*\"       {
-                     //printf("String: (%s)\n", yytext);
-                     yylval.str = strdup(yytext);
-                     return(STRING);
-                  }
-
-\(                {
-                     //printf("left parentheses\n");
-                     yylval.ival = yytext[0];
-                     return(LPAREN);
-                  }
-
-\)                {
-                     //printf("right parentheses\n");
-                     yylval.ival = yytext[0];
-                     return(RPAREN);
-                  }
-
-\{                {
-                     //printf("left brace\n");
-                     yylval.ival = yytext[0];
-                     return(LBRACE);
-                  }
-
-\}                {
-                     //printf("right brace\n");
-                     yylval.ival = yytext[0];
-                     return(RBRACE);
-                  }
-
-\;                {
-                     //printf("Semicolon\n");
-                     yylval.ival = yytext[0];
-                     return(SEMICOLON);
-                  }
-
-\,                {
-                     //printf("Comma\n");
-                     yylval.ival = yytext[0];
-                     return(COMMA);
-                  }
-
-\+                {
-                     //printf("Plus\n");
-                     yylval.ival = yytext[0];
-                     return(PLUS);
-                  }
-
-\=                {
-                     yylval.ival = yytext[0];
-                     return(EQUAL);
-                  }
+\{        {
+/*             printf("LBRACE: (%s)\n", yytext); */
+            yylval.ival = yytext[0];
+            return(LBRACE);
+          }
+          
+\}        {
+/*             printf("RBRACE: (%s)\n", yytext); */
+            yylval.ival = yytext[0];
+            return(RBRACE);
+          }
+          
+[0-9]+    {
+/*             printf("NUMBER: (%s)\n", yytext); */
+            yylval.ival = strtol(yytext, (char* *) NULL,0);
+            return(NUMBER);
+          }
+          
+\,        {
+/*             printf("COMMA: (%s)\n",yytext); */
+            yylval.ival = yytext[0];
+            return(COMMA); 
+          }
+          
+\=	       {
+/*             printf("EQUALS: (%s)\n", yytext);  */
+            yylval.ival = yytext[0];
+            return (EQUALS);
+          }          
+          
+[\+\-]    {
+/*             printf("PLUS: (%s)\n",yytext); */
+            yylval.ival = yytext[0];
+            return(ADDOP);         
+          }
+         
+[=!]=    {
+            yylval.ival = yytext[0];
+            return(RELOP);
+         }
+         
+[<>]     {
+            yylval.ival = yytext[0];
+            return(RELOP);
+         }
 
 %%
-
 #ifdef LEXONLY
-
-int main(int argc, char **argv)
-{
-   do
-   {
-      yylex();
-   } while(1);
-   return 0;
-}
 
 int yywrap()
 {
    exit(0);
 }
-
 #endif
